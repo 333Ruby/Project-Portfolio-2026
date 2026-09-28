@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lava Entropy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            color: #ff6b35;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .card h2 {
+            font-size: 0.9rem;
+            color: #ff6b35;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        button {
+            background: #ff6b35;
+            color: #000;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        button:hover {
+            background: #ff8c5a;
+        }
+
+        button:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        input, textarea {
+            width: 100%;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            padding: 10px;
+            margin-top: 8px;
+        }
+
+        textarea {
+            height: 80px;
+            resize: none;
+        }
+
+        .result {
+            margin-top: 16px;
+            padding: 12px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            word-break: break-all;
+            display: none;
+        }
+
+        .result.visible {
+            display: block;
+        }
+
+        .label {
+            color: #888;
+            font-size: 0.75rem;
+            margin-top: 12px;
+            margin-bottom: 4px;
+        }
+
+        .score-bar {
+            height: 6px;
+            background: #222;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: #ff6b35;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.6s ease;
+        }
+
+        .loading {
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Lava Entropy</h1>
+    <p class="subtitle">Physical randomness → cryptographic security</p>
+
+    <!-- Entropy Section -->
+    <div class="card">
+        <h2>Entropy Source</h2>
+        <p style="color:#888; font-size:0.8rem;">Captures two consecutive frames from a lava lamp video feed, computes the pixel difference, and hashes it with SHA-256 to produce a random value.</p>
+        <button id="entropyBtn" onclick="getEntropy()">Generate Entropy</button>
+        <p class="loading" id="entropyLoading" style="display:none;">Capturing frames...</p>
+        <div class="result" id="entropyResult">
+            <div class="label">Entropy Value (SHA-256)</div>
+            <div id="entropyValue"></div>
+            <div class="label">Entropy Quality Score</div>
+            <div id="entropyScore"></div>
+            <div class="score-bar">
+                <div class="score-fill" id="scoreFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Encrypt Section -->
+    <div class="card">
+        <h2>Encrypt Message</h2>
+        <p style="color:#888; font-size:0.8rem;">Generates a fresh key from the lava lamp entropy and uses it to encrypt your message with Fernet symmetric encryption.</p>
+        <textarea id="encryptInput" placeholder="Type a message to encrypt..."></textarea>
+        <button id="encryptBtn" onclick="encryptMessage()">Encrypt</button>
+        <p class="loading" id="encryptLoading" style="display:none;">Encrypting...</p>
+        <div class="result" id="encryptResult">
+            <div class="label">Encryption Key</div>
+            <div id="encryptKey"></div>
+            <div class="label">Encrypted Message</div>
+            <div id="encryptedValue"></div>
+            <div class="label">Entropy Score</div>
+            <div id="encryptScore"></div>
+        </div>
+    </div>
+
+    <!-- Decrypt Section -->
+    <div class="card">
+        <h2>Decrypt Message</h2>
+        <p style="color:#888; font-size:0.8rem;">Paste the encrypted message and key below to recover the original plain text.</p>
+        <div class="label">Encrypted Message</div>
+        <input type="text" id="decryptInput" placeholder="Paste encrypted message...">
+        <div class="label">Key</div>
+        <input type="text" id="decryptKey" placeholder="Paste key...">
+        <button id="decryptBtn" onclick="decryptMessage()">Decrypt</button>
+        <p class="loading" id="decryptLoading" style="display:none;">Decrypting...</p>
+        <div class="result" id="decryptResult">
+            <div class="label">Decrypted Message</div>
+            <div id="decryptedValue"></div>
+        </div>
+    </div>
+
+    <script>
+        async function getEntropy() {
+            const btn = document.getElementById('entropyBtn');
+            const loading = document.getElementById('entropyLoading');
+            const result = document.getElementById('entropyResult');
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+            result.classList.remove('visible');
+
+            try {
+                const res = await fetch('/api/entropy');
+                const data = await res.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                document.getElementById('entropyValue').textContent = data.entropy;
+                document.getElementById('entropyScore').textContent = data.score + ' / 100';
+                document.getElementById('scoreFill').style.width = data.score + '%';
+                result.classList.add('visible');
+
+            } catch (err) {
+                alert('Could not connect to server');
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        async function encryptMessage() {
+            const message = document.getElementById('encryptInput').value;
+            const btn = document.getElementById('encryptBtn');
+            const loading = document.getElementById('encryptLoading');
+            const result = document.getElementById('encryptResult');
+
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+            result.classList.remove('visible');
+
+            try {
+                const res = await fetch('/api/encrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                document.getElementById('encryptKey').textContent = data.key;
+                document.getElementById('encryptedValue').textContent = data.encrypted;
+                document.getElementById('encryptScore').textContent = data.entropy_score + ' / 100';
+                result.classList.add('visible');
+
+            } catch (err) {
+                alert('Could not connect to server');
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        async function decryptMessage() {
+            const encrypted = document.getElementById('decryptInput').value;
+            const key = document.getElementById('decryptKey').value;
+            const btn = document.getElementById('decryptBtn');
+            const loading = document.getElementById('decryptLoading');
+            const result = document.getElementById('decryptResult');
+
+            if (!encrypted || !key) {
+                alert('Please enter both the encrypted message and key');
+                return;
+            }
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+            result.classList.remove('visible');
+
+            try {
+                const res = await fetch('/api/decrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ encrypted, key })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                document.getElementById('decryptedValue').textContent = data.decrypted;
+                result.classList.add('visible');
+
+            } catch (err) {
+                alert('Could not connect to server');
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+
+</body>
+</html>
