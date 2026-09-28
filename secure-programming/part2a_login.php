@@ -29,7 +29,7 @@
             try {
                 // Connect to the database
                 $dsn = 'mysql:host=localhost;dbname=ca3db';
-                $conn = new PDO($dsn, 'ca3user', 'ca3password');
+                $conn = new PDO($dsn, 'your_username', 'your_password');
                 $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
                 // Build the query using the user's input

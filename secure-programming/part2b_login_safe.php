@@ -26,7 +26,7 @@
 
             try {
                 $dsn = 'mysql:host=localhost;dbname=ca3db';
-                $conn = new PDO($dsn, 'ca3user', 'ca3password');
+                $conn = new PDO($dsn, 'your_username', 'your_password');
                 $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
                 $query = "SELECT * FROM users WHERE username = ? AND password = ?";
